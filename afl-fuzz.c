@@ -525,7 +525,7 @@ int net_recv(int sockfd, struct timeval timeout, int poll_w, char **response_buf
   return 0;
 }
 
-int send_over_network()
+int send_over_network(u8 *payload_buf,u32 payload_len)
 {
   int n;
   struct sockaddr_in serv_addr;
@@ -574,7 +574,9 @@ int send_over_network()
   }
 
   long buf_size;
-  char *buf = get_test_case(&buf_size);
+  //u8 *payload_buf,u32 payload_len
+  char *buf = payload_buf;
+  buf_size = payload_len;//get_test_case(&buf_size);
   char *response_buf = NULL;
   int response_buf_size = 0;
 
@@ -2544,7 +2546,7 @@ EXP_ST void init_forkserver(char** argv) {
 /* Execute target application, monitoring for timeouts. Return status
    information. The called program will update trace_bits[]. */
 
-static u8 run_target(char** argv, u32 timeout) {
+static u8 run_target(char** argv, u32 timeout,u8 *payload_buf,u32 payload_len) {
 
   static struct itimerval it;
   static u32 prev_timed_out = 0;
@@ -2679,11 +2681,11 @@ static u8 run_target(char** argv, u32 timeout) {
   /* The SIGALRM handler simply kills the child_pid and sets child_timed_out. */
 
   if (dumb_mode == 1 || no_forkserver) {
-    if (use_net) send_over_network();
+    if (use_net) send_over_network(payload_buf,payload_len);
     if (waitpid(child_pid, &status, 0) <= 0) PFATAL("waitpid() failed");
 
   } else {
-    if (use_net) send_over_network();
+    if (use_net) send_over_network(payload_buf,payload_len);
     s32 res;
 
     if ((res = read(fsrv_st_fd, &status, 4)) != 4) {
@@ -2872,7 +2874,7 @@ static u8 calibrate_case(char** argv, struct queue_entry* q, u8* use_mem,
 
     write_to_testcase(use_mem, q->len);
 
-    fault = run_target(argv, use_tmout);
+    fault = run_target(argv, use_tmout, use_mem, q->len);
 
     /* stop_soon is set by the handler for Ctrl+C. When it's pressed,
        we want to bail out quickly. */
@@ -3502,7 +3504,7 @@ static u8 save_if_interesting(char** argv, void* mem, u32 len, u8 fault) {
 
         u8 new_fault;
         write_to_testcase(mem, len);
-        new_fault = run_target(argv, hang_tmout);
+        new_fault = run_target(argv, hang_tmout, mem, len);
 
         /* A corner case that one user reported bumping into: increasing the
            timeout actually uncovers a crash. Make sure we don't discard it if
@@ -4820,7 +4822,7 @@ static u8 trim_case(char** argv, struct queue_entry* q, u8* in_buf) {
 
       write_with_gap(in_buf, q->len, remove_pos, trim_avail);
 
-      fault = run_target(argv, exec_tmout);
+      fault = run_target(argv, exec_tmout,in_buf, q->len);
       trim_execs++;
 
       if (stop_soon || fault == FAULT_ERROR) goto abort_trimming;
@@ -4911,9 +4913,9 @@ EXP_ST u8 common_fuzz_stuff(char** argv, u8* out_buf, u32 len) {
 
   }
 
-  write_to_testcase(out_buf, len);
+//write_to_testcase(out_buf, len);
 
-  fault = run_target(argv, exec_tmout);
+  fault = run_target(argv, exec_tmout,out_buf, len);
 
   if (stop_soon) return 1;
 
@@ -7042,7 +7044,7 @@ static void sync_fuzzers(char** argv) {
 
         write_to_testcase(mem, st.st_size);
 
-        fault = run_target(argv, exec_tmout);
+        fault = run_target(argv, exec_tmout, mem, st.st_size);
 
         if (stop_soon) return;
 
