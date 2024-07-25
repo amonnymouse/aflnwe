@@ -606,7 +606,7 @@ HANDLE_RESPONSES:
     if ((status != 0) && (errno == ESRCH)) break;
   }
 
-  ck_free(buf);
+  //ck_free(buf);
   return 0;
 }
 
@@ -2872,7 +2872,7 @@ static u8 calibrate_case(char** argv, struct queue_entry* q, u8* use_mem,
 
     if (!first_run && !(stage_cur % stats_update_freq)) show_stats();
 
-    write_to_testcase(use_mem, q->len);
+    //write_to_testcase(use_mem, q->len);
 
     fault = run_target(argv, use_tmout, use_mem, q->len);
 
@@ -3503,7 +3503,7 @@ static u8 save_if_interesting(char** argv, void* mem, u32 len, u8 fault) {
       if (exec_tmout < hang_tmout) {
 
         u8 new_fault;
-        write_to_testcase(mem, len);
+        //write_to_testcase(mem, len);
         new_fault = run_target(argv, hang_tmout, mem, len);
 
         /* A corner case that one user reported bumping into: increasing the
@@ -7042,7 +7042,7 @@ static void sync_fuzzers(char** argv) {
         /* See what happens. We rely on save_if_interesting() to catch major
            errors and save the test case. */
 
-        write_to_testcase(mem, st.st_size);
+        //write_to_testcase(mem, st.st_size);
 
         fault = run_target(argv, exec_tmout, mem, st.st_size);
 
